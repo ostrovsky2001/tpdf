@@ -9,9 +9,7 @@ from handlers import tpdf
 
 app = web.Application()
 
-aiohttp_jinja2.setup(
-    app, loader=jinja2.FileSystemLoader(os.path.join(os.getcwd(), "templates"))
-)
+aiohttp_jinja2.setup(app, loader=jinja2.FileSystemLoader(os.path.join(os.getcwd(), "templates")))
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -24,4 +22,4 @@ app.add_routes([
     web.static('/static', 'static', show_index=True)
 ])
 
-web.run_app(app, port=8000)
+web.run_app(app, port=8002)

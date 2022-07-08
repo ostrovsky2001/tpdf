@@ -28,7 +28,7 @@ async def positioning(request):
     in_data.update({'fields': fields})
     return in_data
 
-df = pd.read_excel(r'\tpdf\libs\tpdf_templates\NewName\table.xlsx')
+df = pd.read_excel('table.xlsx')
 TPdf.dump_to_json(df)
 
 async def save_form_fields(request):
