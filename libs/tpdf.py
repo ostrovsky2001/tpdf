@@ -17,7 +17,7 @@ import pandas as pd
 
 CUR_PATH = os.path.dirname(os.path.abspath(__file__))
 FILES = os.path.join(CUR_PATH, 'tpdf_templates')
-
+f1 = os.path.join(FILES, 'NewName','fields.json')
 FieldParams = namedtuple('FieldParams', 'x y name font_name font_size width')
 page_size = A4
 page_width = page_size[0]
@@ -39,7 +39,7 @@ class TPdf:
     def dump_to_json(df=''):
         match_fields = []
         #Поиск новых записей в excel.
-        data_json = json.load(open(r'\tpdf_templates\NewName\fields.json', 'r'))
+        data_json = json.load(open(f1,'r'))
         for field_list in list(data_json.values()):
             for field in field_list:
                 if type(field[2])==str:
@@ -86,7 +86,7 @@ class TPdf:
                             values.remove(value)
                         data_json[str(page_excel)].append(value)
 
-        with open(r'\tpdf_templates\NewName\fields.json','w') as outfile:
+        with open(f1,'w') as outfile:
             json.dump(data_json,outfile,indent=4,sort_keys=True)
         return None
     @staticmethod
