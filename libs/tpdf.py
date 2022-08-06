@@ -4,6 +4,7 @@ import json
 import os
 from collections import namedtuple
 from datetime import datetime as dt
+from glob import glob
 from typing import Generator
 
 from functools import cached_property
@@ -33,58 +34,43 @@ class TPdf:
         self.fields.update(kwargs)
         self.fields = self.format_for_pdf(self.fields)
         self.documents = {}
-        
-    #def match_excel_json():
+        self.FONTS = os.path.abspath(os.path.join(CUR_PATH, '../static/fonts'))
 
     def dump_to_json(df=''):
-        match_fields = []
         #Поиск новых записей в excel.
         data_json = json.load(open(f1,'r'))
-        for field_list in list(data_json.values()):
-            for field in field_list:
-                if type(field[2])==str:
-                    match_fields.append(field[2])
-
-        new_fields = list(set(match_fields)-set(df[df.columns[0]].values)) # отображает список с новыми записями из excel
-        inf_fields = (df[df.columns[0]].values,df[df.columns[-1]].values) # названия переменных в excel и их страницы
-
-        for item,values in list(data_json.items()):
-            for value in values:
-                if value[2] in new_fields:
-                    if len(values)==1:
-                        data_json.pop(item,100)
-                    else:
-                        values.remove(value)
-
-        for value in df.values:
-            if value[0] not in match_fields:
-                
-                if str(value[-1]) in data_json:
-                    #if value[0] not in match_fields:
-                    data_json[str(value[-1])].append([230,300,value[0],'DejaVuSans',12,100])
+        new_fields = df[df.columns[0]].values.tolist()
+        for item, values in list(data_json.items()):
+            for index,value in enumerate(values.copy()):
+                if value[2] in df[df.columns[0]].values:
+                    try:
+                        new_fields.remove(value[2])
+                    except:
+                        pass
+                    page_excel = str(df[df[df.columns[0]]==value[2]][df.columns[-1]].values[0])
+                    if item!=page_excel:
+                        if len(data_json[item])==1:
+                            data_json.pop(item)
+                        else:
+                            data_json[item].remove(value)
+                        if page_excel in data_json.keys():
+                            data_json[page_excel].append(value)
+                        else:
+                            data_json[page_excel] = []
+                            data_json[page_excel].append(value)
+                        
                 else:
-                    #if value[0] not in match_fields:
-                    data_json[str(value[-1])] = []
-                    data_json[str(value[-1])].append([230,300,value[0],'DejaVuSans',12,100])
-
-        for item,values in list(data_json.items()):
-            for value in values:
-                index = list(inf_fields[0]).index(value[2])
-                page_excel = df.at[index,df.columns[-1]]
-                if str(page_excel)!=item:
-                    if str(page_excel) not in data_json.keys():
-                        if len(data_json[item])==1:
-                            data_json.pop(item)
-                        else:
-                            values.remove(value)
-                        data_json[str(page_excel)] = []
-                        data_json[str(page_excel)].append(value)
+                    if len(data_json[item])==1:
+                        data_json.pop(item)
                     else:
-                        if len(data_json[item])==1:
-                            data_json.pop(item)
-                        else:
-                            values.remove(value)
-                        data_json[str(page_excel)].append(value)
+                        data_json[item].remove(value)
+        for var_name in new_fields:
+            page_excel = str(df[df[df.columns[0]]==var_name][df.columns[-1]].values[0])
+            if page_excel in data_json.keys():
+                data_json[page_excel].append([230,300,var_name,'DejaVuSans',12,100])
+            else:
+                data_json[page_excel] = []
+                data_json[page_excel].append([230,300,var_name,'DejaVuSans',12,100])
 
         with open(f1,'w') as outfile:
             json.dump(data_json,outfile,indent=4,sort_keys=True)
@@ -176,7 +162,9 @@ class TPdf:
         pdf_fields = self.load_fields_from_file(name)
 
         # регистрируем все необходимые шрифты
-        pdfmetrics.registerFont(TTFont('DejaVuSans', 'DejaVuSans.ttf'))
+        #pdfmetrics.registerFont(TTFont('DejaVuSans', 'DejaVuSans.ttf'))
+        for filename in glob(os.path.join(self.FONTS, '*.ttf')):
+            pdfmetrics.registerFont(TTFont(os.path.basename(filename)[:-4], filename))
         last_font = ['DejaVuSans', 10]
 
         pdf_form_path = os.path.join(FILES, name, 'form.pdf')
@@ -194,9 +182,11 @@ class TPdf:
                 # create a new PDF with Reportlab
                 # bottomup=0 - отсчёт Y делаем сверху вниз, как на фронте
                 can = canvas.Canvas(packet, pagesize=page_size)
-                can.setFont(*last_font)  # в момент создания страницы нужно
+                can.setFont(*last_font) # в момент создания страницы нужно
                 # перебираем поля и заполняем их в pdf canvas
                 for field in pdf_fields[page_num]:
+                    #if page_num=='1':
+                    #    can.setFillColorRGB(255, 102, 0)
                     # если шрифт изменился, то устанавливаем новое значение
                     new_font = [field.font_name, field.font_size]
                     if last_font != new_font:
